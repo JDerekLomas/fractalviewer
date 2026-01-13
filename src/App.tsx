@@ -1,14 +1,10 @@
-import { useState } from 'react';
 import { FractalGrid3D } from './components/FractalGrid3D';
 import { ControlPanel } from './components/ControlPanel';
 import { FeedbackPanel3D } from './components/FeedbackPanel3D';
-import { ExpandedViewer } from './components/ExpandedViewer';
 import { useEvolution3D } from './hooks/useEvolution3D';
-import { FractalGenome3D } from './lib/types3d';
 
 function App() {
   const { population, generation, comment, select, reject, setComment, evolve, reset } = useEvolution3D();
-  const [expandedGenome, setExpandedGenome] = useState<FractalGenome3D | null>(null);
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
@@ -24,7 +20,6 @@ function App() {
           population={population}
           onSelect={select}
           onReject={reject}
-          onExpand={setExpandedGenome}
         />
       </div>
 
@@ -36,15 +31,8 @@ function App() {
       />
 
       <div className="p-2 text-center text-zinc-600 text-xs">
-        Click to select • ⛶ to expand • X to reject • Drag to rotate
+        Click to select favorites. X to reject. Drag to rotate. Comments and selections export below.
       </div>
-
-      {expandedGenome && (
-        <ExpandedViewer
-          genome={expandedGenome}
-          onClose={() => setExpandedGenome(null)}
-        />
-      )}
     </div>
   );
 }

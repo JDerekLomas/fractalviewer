@@ -200,7 +200,12 @@ export function crossover3D(a: FractalGenome3D, b: FractalGenome3D): FractalGeno
   };
 }
 
-// Interesting 3D seeds
+// ============================================
+// CLASSIC IFS SEED FRACTALS
+// Based on Paul Bourke's IFS collection and academic literature
+// ============================================
+
+// Sierpinski Tetrahedron - 4 contracting maps to vertices
 export function createTetrahedronLike(): FractalGenome3D {
   const s = 0.5;
   return {
@@ -242,13 +247,311 @@ export function createTree3D(): FractalGenome3D {
   };
 }
 
+// 3D Barnsley Fern - Extended classic fern with depth
+export function createBarnsleyFern3D(): FractalGenome3D {
+  return {
+    id: generateId(),
+    transforms: [
+      // Stem
+      { m: [0, 0, 0, 0, 0.16, 0, 0, 0, 0], tx: 0, ty: 0, tz: 0, probability: 0.01, color: [60, 100, 40] },
+      // Main frond
+      { m: [0.85, 0.04, 0, -0.04, 0.85, 0.1, 0, -0.1, 0.85], tx: 0, ty: 1.6, tz: 0, probability: 0.85, color: [34, 139, 34] },
+      // Left branch with z-rotation
+      { m: [0.2, -0.26, 0.1, 0.23, 0.22, 0, -0.1, 0, 0.2], tx: 0, ty: 1.0, tz: 0.1, probability: 0.07, color: [50, 205, 50] },
+      // Right branch with z-rotation
+      { m: [-0.15, 0.28, -0.1, 0.26, 0.24, 0, 0.1, 0, 0.2], tx: 0, ty: 0.44, tz: -0.1, probability: 0.07, color: [0, 200, 0] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Cantor Dust 3D - 8 corner cubes (like 3D Cantor set)
+export function createCantorDust3D(): FractalGenome3D {
+  const s = 0.33;
+  const d = 0.5;
+  return {
+    id: generateId(),
+    transforms: [
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: -d, tz: -d, probability: 1, color: [255, 200, 100] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: -d, tz: -d, probability: 1, color: [255, 150, 100] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: d, tz: -d, probability: 1, color: [255, 100, 100] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: d, tz: -d, probability: 1, color: [200, 100, 150] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: -d, tz: d, probability: 1, color: [150, 100, 200] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: -d, tz: d, probability: 1, color: [100, 100, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: d, tz: d, probability: 1, color: [100, 150, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: d, tz: d, probability: 1, color: [100, 200, 255] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Sierpinski Octahedron - 6 maps to octahedron vertices
+export function createOctahedron(): FractalGenome3D {
+  const s = 0.5;
+  return {
+    id: generateId(),
+    transforms: [
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0.5, tz: 0, probability: 1, color: [255, 50, 50] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: -0.5, tz: 0, probability: 1, color: [50, 255, 50] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0.5, ty: 0, tz: 0, probability: 1, color: [50, 50, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -0.5, ty: 0, tz: 0, probability: 1, color: [255, 255, 50] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0, tz: 0.5, probability: 1, color: [50, 255, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0, tz: -0.5, probability: 1, color: [255, 50, 255] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Vicsek Fractal 3D - Cross-shaped fractal
+export function createVicsek3D(): FractalGenome3D {
+  const s = 0.33;
+  return {
+    id: generateId(),
+    transforms: [
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0, tz: 0, probability: 1, color: [255, 255, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0.66, ty: 0, tz: 0, probability: 1, color: [255, 100, 100] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -0.66, ty: 0, tz: 0, probability: 1, color: [100, 255, 100] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0.66, tz: 0, probability: 1, color: [100, 100, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: -0.66, tz: 0, probability: 1, color: [255, 255, 100] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0, tz: 0.66, probability: 1, color: [100, 255, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0, tz: -0.66, probability: 1, color: [255, 100, 255] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Double Helix (DNA-like spiral)
+export function createDoubleHelix(): FractalGenome3D {
+  const angle = Math.PI / 6;
+  const c = Math.cos(angle), s = Math.sin(angle);
+  return {
+    id: generateId(),
+    transforms: [
+      // Helix 1 - rotating climb
+      { m: [0.7 * c, -0.7 * s, 0, 0.7 * s, 0.7 * c, 0, 0, 0, 0.7], tx: 0.15, ty: 0, tz: 0.15, probability: 0.5, color: [0, 150, 255] },
+      // Helix 2 - opposite rotation
+      { m: [0.7 * c, 0.7 * s, 0, -0.7 * s, 0.7 * c, 0, 0, 0, 0.7], tx: -0.15, ty: 0, tz: 0.15, probability: 0.5, color: [255, 100, 150] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Fractal Flame - Swirl variant (organic, flowing)
+export function createFlameSwirl(): FractalGenome3D {
+  return {
+    id: generateId(),
+    transforms: [
+      { m: [0.5, -0.4, 0.1, 0.4, 0.5, 0.1, -0.1, -0.1, 0.5], tx: 0.1, ty: 0.1, tz: 0, probability: 0.6, color: [255, 100, 50] },
+      { m: [0.4, 0.3, -0.2, -0.3, 0.4, 0.2, 0.2, -0.2, 0.4], tx: -0.2, ty: 0.2, tz: 0.1, probability: 0.4, color: [255, 200, 100] },
+      { m: [0.3, 0, 0.3, 0, 0.3, 0, -0.3, 0, 0.3], tx: 0, ty: -0.1, tz: -0.2, probability: 0.3, color: [255, 255, 150] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Crystal/Icosahedron-like structure
+export function createCrystal(): FractalGenome3D {
+  const s = 0.4;
+  // Normalized icosahedron-like vertices
+  return {
+    id: generateId(),
+    transforms: [
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0.5, tz: 0.3, probability: 1, color: [200, 220, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0.5, tz: -0.3, probability: 1, color: [180, 200, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0.5, ty: 0.3, tz: 0, probability: 1, color: [160, 180, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -0.5, ty: 0.3, tz: 0, probability: 1, color: [140, 160, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0.3, ty: 0, tz: 0.5, probability: 1, color: [120, 140, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -0.3, ty: 0, tz: 0.5, probability: 1, color: [100, 120, 255] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Dragon Curve 3D - Classic dragon with z-component
+export function createDragon3D(): FractalGenome3D {
+  const r = Math.sqrt(2) / 2;
+  const angle = Math.PI / 4;
+  const c = Math.cos(angle), s = Math.sin(angle);
+  return {
+    id: generateId(),
+    transforms: [
+      // Fold 1
+      { m: [r * c, -r * s, 0, r * s, r * c, 0, 0, 0, r], tx: 0, ty: 0, tz: 0.1, probability: 0.5, color: [50, 200, 100] },
+      // Fold 2 (rotated 135°)
+      { m: [-r * c, -r * s, 0, r * s, -r * c, 0, 0, 0, r], tx: 1, ty: 0, tz: -0.1, probability: 0.5, color: [100, 50, 200] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Koch Snowflake 3D approximation
+export function createKoch3D(): FractalGenome3D {
+  const s = 0.33;
+  return {
+    id: generateId(),
+    transforms: [
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -0.33, ty: 0, tz: 0, probability: 1, color: [200, 230, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0.33, ty: 0, tz: 0, probability: 1, color: [150, 200, 255] },
+      // Peaked transforms with rotation
+      { m: [s * 0.866, -s * 0.5, 0, s * 0.5, s * 0.866, 0, 0, 0, s], tx: -0.08, ty: 0.2, tz: 0.15, probability: 1, color: [100, 150, 255] },
+      { m: [s * 0.866, s * 0.5, 0, -s * 0.5, s * 0.866, 0, 0, 0, s], tx: 0.08, ty: 0.2, tz: -0.15, probability: 1, color: [50, 100, 255] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Menger Sponge approximation - 8 edge cubes (simplified)
+export function createMengerSponge(): FractalGenome3D {
+  const s = 0.33;
+  const d = 0.33;
+  return {
+    id: generateId(),
+    transforms: [
+      // Corner cubes only (8 of them) - simplified sponge
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: -d, tz: -d, probability: 1, color: [255, 200, 150] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: -d, tz: -d, probability: 1, color: [255, 180, 130] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: d, tz: -d, probability: 1, color: [255, 160, 110] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: d, tz: -d, probability: 1, color: [255, 140, 90] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: -d, tz: d, probability: 1, color: [255, 120, 70] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: -d, tz: d, probability: 1, color: [255, 100, 50] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: d, tz: d, probability: 1, color: [255, 80, 30] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: d, tz: d, probability: 1, color: [255, 60, 10] },
+      // Edge midpoints (12 of them for fuller sponge)
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: -d, tz: -d, probability: 1, color: [200, 150, 100] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: d, tz: -d, probability: 1, color: [200, 130, 80] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: -d, tz: d, probability: 1, color: [200, 110, 60] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: d, tz: d, probability: 1, color: [200, 90, 40] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: 0, tz: -d, probability: 1, color: [150, 100, 50] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: 0, tz: -d, probability: 1, color: [150, 80, 30] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: 0, tz: d, probability: 1, color: [150, 60, 10] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: 0, tz: d, probability: 1, color: [130, 50, 0] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: -d, tz: 0, probability: 1, color: [180, 120, 70] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: -d, tz: 0, probability: 1, color: [180, 100, 50] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -d, ty: d, tz: 0, probability: 1, color: [180, 80, 30] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: d, ty: d, tz: 0, probability: 1, color: [180, 60, 10] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Galaxy Spiral - multiple arms with twist
+export function createGalaxySpiral(): FractalGenome3D {
+  return {
+    id: generateId(),
+    transforms: [
+      // Core
+      { m: [0.3, 0, 0, 0, 0.3, 0, 0, 0, 0.3], tx: 0, ty: 0, tz: 0, probability: 0.2, color: [255, 255, 200] },
+      // Arm 1
+      { m: [0.7, -0.2, 0, 0.2, 0.7, 0, 0, 0, 0.7], tx: 0.2, ty: 0.1, tz: 0.02, probability: 0.4, color: [150, 100, 255] },
+      // Arm 2 (opposite side)
+      { m: [0.7, 0.2, 0, -0.2, 0.7, 0, 0, 0, 0.7], tx: -0.2, ty: -0.1, tz: -0.02, probability: 0.4, color: [255, 150, 200] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Nested Cubes - recursive cube within cube
+export function createNestedCubes(): FractalGenome3D {
+  const s = 0.45;
+  const angle = Math.PI / 8;
+  const c = Math.cos(angle), sn = Math.sin(angle);
+  return {
+    id: generateId(),
+    transforms: [
+      // Rotated inner cube
+      { m: [s * c, -s * sn, 0, s * sn, s * c, 0, 0, 0, s], tx: 0, ty: 0, tz: 0, probability: 0.5, color: [255, 100, 100] },
+      // Offset cubes on faces
+      { m: [s * 0.4, 0, 0, 0, s * 0.4, 0, 0, 0, s * 0.4], tx: 0.4, ty: 0, tz: 0, probability: 0.2, color: [100, 255, 100] },
+      { m: [s * 0.4, 0, 0, 0, s * 0.4, 0, 0, 0, s * 0.4], tx: -0.4, ty: 0, tz: 0, probability: 0.2, color: [100, 100, 255] },
+      { m: [s * 0.4, 0, 0, 0, s * 0.4, 0, 0, 0, s * 0.4], tx: 0, ty: 0.4, tz: 0, probability: 0.1, color: [255, 255, 100] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Apollonian Gasket 3D approximation (nested spheres pattern)
+export function createApollonian3D(): FractalGenome3D {
+  const s = 0.5;
+  return {
+    id: generateId(),
+    transforms: [
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: 0, tz: 0.4, probability: 1, color: [255, 180, 180] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0.35, ty: 0.2, tz: -0.2, probability: 1, color: [180, 255, 180] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: -0.35, ty: 0.2, tz: -0.2, probability: 1, color: [180, 180, 255] },
+      { m: [s, 0, 0, 0, s, 0, 0, 0, s], tx: 0, ty: -0.4, tz: -0.2, probability: 1, color: [255, 255, 180] },
+      { m: [s * 0.5, 0, 0, 0, s * 0.5, 0, 0, 0, s * 0.5], tx: 0, ty: 0, tz: 0, probability: 0.5, color: [200, 200, 200] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// Fractal Fern Palm - tropical variant
+export function createPalmFern(): FractalGenome3D {
+  return {
+    id: generateId(),
+    transforms: [
+      // Trunk
+      { m: [0.02, 0, 0, 0, 0.5, 0, 0, 0, 0.02], tx: 0, ty: -0.2, tz: 0, probability: 0.05, color: [101, 67, 33] },
+      // Main upward growth
+      { m: [0.8, 0, 0.05, 0, 0.8, 0, -0.05, 0, 0.8], tx: 0, ty: 0.4, tz: 0, probability: 0.6, color: [34, 139, 34] },
+      // Left frond spread
+      { m: [0.3, -0.3, 0.1, 0.3, 0.3, 0, -0.1, 0, 0.3], tx: -0.15, ty: 0.5, tz: 0.05, probability: 0.15, color: [50, 205, 50] },
+      // Right frond spread
+      { m: [0.3, 0.3, -0.1, -0.3, 0.3, 0, 0.1, 0, 0.3], tx: 0.15, ty: 0.5, tz: -0.05, probability: 0.15, color: [60, 179, 60] },
+      // Back frond
+      { m: [0.3, 0, 0.3, 0, 0.3, 0, -0.3, 0, 0.3], tx: 0, ty: 0.5, tz: 0.15, probability: 0.05, color: [46, 139, 46] },
+    ],
+    generation: 0,
+    parentIds: [],
+  };
+}
+
+// All available seed fractal generators
+const SEED_GENERATORS = [
+  createTetrahedronLike,
+  createSpiral3D,
+  createTree3D,
+  createBarnsleyFern3D,
+  createCantorDust3D,
+  createOctahedron,
+  createVicsek3D,
+  createDoubleHelix,
+  createFlameSwirl,
+  createCrystal,
+  createDragon3D,
+  createKoch3D,
+  createMengerSponge,
+  createGalaxySpiral,
+  createNestedCubes,
+  createApollonian3D,
+  createPalmFern,
+];
+
 export function createInitialPopulation3D(size: number): FractalGenome3D[] {
   const population: FractalGenome3D[] = [];
 
-  // Include interesting seeds
-  population.push(createTetrahedronLike());
-  population.push(createSpiral3D());
-  population.push(createTree3D());
+  // Include a diverse mix of seed fractals
+  // Shuffle and pick from available seeds
+  const shuffled = [...SEED_GENERATORS].sort(() => Math.random() - 0.5);
+
+  // Add seed fractals (up to half the population)
+  const seedCount = Math.min(Math.floor(size / 2), shuffled.length);
+  for (let i = 0; i < seedCount; i++) {
+    population.push(shuffled[i]());
+  }
 
   // Fill rest with random
   while (population.length < size) {
@@ -256,4 +559,9 @@ export function createInitialPopulation3D(size: number): FractalGenome3D[] {
   }
 
   return population;
+}
+
+// Get all seed fractals for a fresh start with maximum variety
+export function createAllSeedFractals(): FractalGenome3D[] {
+  return SEED_GENERATORS.map(gen => gen());
 }

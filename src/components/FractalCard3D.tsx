@@ -9,15 +9,11 @@ interface FractalCard3DProps {
   index: number;
   onSelect: (id: string) => void;
   onReject: (id: string) => void;
-  onExpand: () => void;
   size?: number;
 }
 
-export function FractalCard3D({ genome, index, onSelect, onReject, onExpand, size = 180 }: FractalCard3DProps) {
+export function FractalCard3D({ genome, index, onSelect, onReject, size = 180 }: FractalCard3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const onExpandRef = useRef(onExpand);
-  onExpandRef.current = onExpand;
-
   const sceneRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
@@ -40,10 +36,6 @@ export function FractalCard3D({ genome, index, onSelect, onReject, onExpand, siz
     renderer.setSize(size, size);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.appendChild(renderer.domElement);
-
-    // Double-click to expand (backup, button is primary)
-    const handleDblClick = () => onExpandRef.current();
-    renderer.domElement.addEventListener('dblclick', handleDblClick);
 
     // Orbit controls for rotation
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -71,7 +63,6 @@ export function FractalCard3D({ genome, index, onSelect, onReject, onExpand, siz
     animate();
 
     return () => {
-      renderer.domElement.removeEventListener('dblclick', handleDblClick);
       if (sceneRef.current) {
         cancelAnimationFrame(sceneRef.current.animationId);
         sceneRef.current.controls.dispose();
@@ -92,19 +83,6 @@ export function FractalCard3D({ genome, index, onSelect, onReject, onExpand, siz
       <div className="absolute top-2 left-2 z-10 w-6 h-6 rounded bg-black/60 text-zinc-400 text-xs flex items-center justify-center font-mono">
         {index + 1}
       </div>
-
-      {/* Expand button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onExpand();
-        }}
-        className="absolute top-2 right-10 z-10 w-6 h-6 rounded text-xs flex items-center justify-center
-          transition-all bg-black/60 text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-blue-600 hover:text-white"
-        title="Expand"
-      >
-        ⛶
-      </button>
 
       {/* Reject button */}
       <button
@@ -127,7 +105,6 @@ export function FractalCard3D({ genome, index, onSelect, onReject, onExpand, siz
       {/* Main clickable area */}
       <div
         onClick={() => onSelect(genome.id)}
-        onDoubleClick={onExpand}
         className={`
           cursor-pointer rounded-lg overflow-hidden border-4 transition-all
           ${isSelected ? 'border-green-500 shadow-lg shadow-green-500/40 scale-105' : ''}

@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { FractalGenome3D, AffineTransform3D } from '../lib/types3d';
 
 interface ExpandedViewerProps {
@@ -27,12 +30,9 @@ function applyTransform3D(x: number, y: number, z: number, t: AffineTransform3D)
   ];
 }
 
-const MAX_POINTS = 50000;
-
 export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pointCount, setPointCount] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -53,6 +53,19 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
+    // Post-processing with bloom
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(width, height),
+      0.8,  // strength
+      0.4,  // radius
+      0.2   // threshold
+    );
+    composer.addPass(bloomPass);
+
     // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -60,128 +73,109 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.5;
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
-    scene.add(ambientLight);
+    // Progressive point generation
+    const MAX_POINTS = 500000;
+    const BATCH_SIZE = 5000;
+    const SKIP_ITERATIONS = 20;
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 5, 5);
-    scene.add(directionalLight);
-
-    const directionalLight2 = new THREE.DirectionalLight(0x8888ff, 0.5);
-    directionalLight2.position.set(-5, -3, -5);
-    scene.add(directionalLight2);
-
-    // Instanced spheres setup
-    const sphereGeometry = new THREE.SphereGeometry(0.012, 8, 6);
-    const sphereMaterial = new THREE.MeshStandardMaterial({
-      roughness: 0.4,
-      metalness: 0.3,
-    });
-
-    // Pre-allocate instanced mesh for max points (we'll update count as we grow)
-    const maxInstances = MAX_POINTS;
-    const instancedMesh = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, maxInstances);
-    instancedMesh.count = 0; // Start with 0 visible instances
-    scene.add(instancedMesh);
-
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
-
-    // IFS state
-    let x = Math.random() * 2 - 1;
-    let y = Math.random() * 2 - 1;
-    let z = Math.random() * 2 - 1;
+    let positions: number[] = [];
+    let colors: number[] = [];
+    let currentX = Math.random() * 2 - 1;
+    let currentY = Math.random() * 2 - 1;
+    let currentZ = Math.random() * 2 - 1;
     let iteration = 0;
-    const SKIP = 20;
 
-    // All accumulated points
-    const allPositions: number[] = [];
-    const allColors: number[] = [];
-
-    // Bounds tracking
+    // Tracking bounds for normalization
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
     let minZ = Infinity, maxZ = -Infinity;
 
-    const addBatch = (count: number) => {
-      for (let i = 0; i < count; i++) {
+    const geometry = new THREE.BufferGeometry();
+    const material = new THREE.PointsMaterial({
+      size: 0.008,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.9,
+      sizeAttenuation: true,
+      blending: THREE.AdditiveBlending,
+    });
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+
+    let animationId: number;
+    let growthInterval: ReturnType<typeof setInterval>;
+
+    const addPoints = () => {
+      if (positions.length / 3 >= MAX_POINTS) return;
+
+      const newPositions: number[] = [];
+      const newColors: number[] = [];
+
+      for (let i = 0; i < BATCH_SIZE; i++) {
         const tIdx = selectTransform(genome.transforms);
         const t = genome.transforms[tIdx];
-        [x, y, z] = applyTransform3D(x, y, z, t);
+        [currentX, currentY, currentZ] = applyTransform3D(currentX, currentY, currentZ, t);
 
-        if (!isFinite(x) || !isFinite(y) || !isFinite(z)) {
-          x = Math.random() * 2 - 1;
-          y = Math.random() * 2 - 1;
-          z = Math.random() * 2 - 1;
+        if (!isFinite(currentX) || !isFinite(currentY) || !isFinite(currentZ)) {
+          currentX = Math.random() * 2 - 1;
+          currentY = Math.random() * 2 - 1;
+          currentZ = Math.random() * 2 - 1;
           continue;
         }
 
         iteration++;
-        if (iteration <= SKIP) continue;
+        if (iteration <= SKIP_ITERATIONS) continue;
 
-        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
-        minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+        minX = Math.min(minX, currentX);
+        maxX = Math.max(maxX, currentX);
+        minY = Math.min(minY, currentY);
+        maxY = Math.max(maxY, currentY);
+        minZ = Math.min(minZ, currentZ);
+        maxZ = Math.max(maxZ, currentZ);
 
-        allPositions.push(x, y, z);
-        allColors.push(t.color[0] / 255, t.color[1] / 255, t.color[2] / 255);
+        newPositions.push(currentX, currentY, currentZ);
+        newColors.push(t.color[0] / 255, t.color[1] / 255, t.color[2] / 255);
       }
 
-      // Update instanced mesh
-      const numPoints = allPositions.length / 3;
-      if (numPoints > 0) {
-        const rangeX = maxX - minX || 1;
-        const rangeY = maxY - minY || 1;
-        const rangeZ = maxZ - minZ || 1;
-        const maxRange = Math.max(rangeX, rangeY, rangeZ);
-        const scale = 2 / maxRange;
-        const cx = (minX + maxX) / 2;
-        const cy = (minY + maxY) / 2;
-        const cz = (minZ + maxZ) / 2;
+      positions.push(...newPositions);
+      colors.push(...newColors);
 
-        // Update all instance transforms and colors
-        for (let i = 0; i < numPoints; i++) {
-          const px = (allPositions[i * 3] - cx) * scale;
-          const py = (allPositions[i * 3 + 1] - cy) * scale;
-          const pz = (allPositions[i * 3 + 2] - cz) * scale;
+      // Normalize all points
+      const rangeX = maxX - minX || 1;
+      const rangeY = maxY - minY || 1;
+      const rangeZ = maxZ - minZ || 1;
+      const maxRange = Math.max(rangeX, rangeY, rangeZ);
+      const scale = 2 / maxRange;
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const centerZ = (minZ + maxZ) / 2;
 
-          dummy.position.set(px, py, pz);
-          dummy.updateMatrix();
-          instancedMesh.setMatrixAt(i, dummy.matrix);
-
-          color.setRGB(allColors[i * 3], allColors[i * 3 + 1], allColors[i * 3 + 2]);
-          instancedMesh.setColorAt(i, color);
-        }
-
-        instancedMesh.count = numPoints;
-        instancedMesh.instanceMatrix.needsUpdate = true;
-        if (instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate = true;
+      const normalizedPositions = new Float32Array(positions.length);
+      for (let i = 0; i < positions.length; i += 3) {
+        normalizedPositions[i] = (positions[i] - centerX) * scale;
+        normalizedPositions[i + 1] = (positions[i + 1] - centerY) * scale;
+        normalizedPositions[i + 2] = (positions[i + 2] - centerZ) * scale;
       }
 
-      setPointCount(numPoints);
-      return numPoints;
+      geometry.setAttribute('position', new THREE.BufferAttribute(normalizedPositions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
+      geometry.attributes.position.needsUpdate = true;
+      geometry.attributes.color.needsUpdate = true;
+
+      setPointCount(positions.length / 3);
     };
 
-    // Start with just 10 points
-    addBatch(30); // 30 iterations = 10 points after skipping first 20
+    // Initial batch
+    for (let i = 0; i < 10; i++) addPoints();
 
-    // Grow by 500 points every 50ms
-    intervalRef.current = setInterval(() => {
-      const currentCount = allPositions.length / 3;
-      if (currentCount >= MAX_POINTS) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        return;
-      }
-      addBatch(500);
-    }, 50);
+    // Continue growing
+    growthInterval = setInterval(addPoints, 100);
 
     // Animation loop
-    let animationId: number;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
       controls.update();
-      renderer.render(scene, camera);
+      composer.render();
     };
     animate();
 
@@ -192,18 +186,18 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      composer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
 
     // Cleanup
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      clearInterval(growthInterval);
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', handleResize);
       controls.dispose();
       renderer.dispose();
-      sphereGeometry.dispose();
-      sphereMaterial.dispose();
+      composer.dispose();
       container.innerHTML = '';
     };
   }, [genome]);
@@ -214,7 +208,7 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
         <div className="text-white">
           <span className="text-zinc-400">Points:</span>{' '}
           <span className="font-mono text-green-400">{pointCount.toLocaleString()}</span>
-          {pointCount < MAX_POINTS && <span className="text-zinc-500 ml-2">(growing...)</span>}
+          <span className="text-zinc-500 ml-2">(growing...)</span>
         </div>
         <button
           onClick={onClose}
