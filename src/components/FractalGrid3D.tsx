@@ -10,7 +10,7 @@ interface FractalGrid3DProps {
 
 export function FractalGrid3D({ population, onSelect, onReject, onViewDetail }: FractalGrid3DProps) {
   return (
-    <div className="grid grid-cols-3 gap-6 p-6 justify-items-center">
+    <div className="grid grid-cols-3 gap-4 p-4 h-full">
       {population.map((genome, index) => (
         <FractalCard3D
           key={genome.id}

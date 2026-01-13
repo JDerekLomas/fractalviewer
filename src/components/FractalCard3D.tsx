@@ -13,7 +13,7 @@ interface FractalCard3DProps {
   size?: number;
 }
 
-export function FractalCard3D({ genome, index, onSelect, onReject, onViewDetail, size = 280 }: FractalCard3DProps) {
+export function FractalCard3D({ genome, index, onSelect, onReject, onViewDetail, size = 320 }: FractalCard3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState(false);
   const sceneRef = useRef<{

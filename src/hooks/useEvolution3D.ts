@@ -69,7 +69,14 @@ function saveConfig(config: Partial<EvolutionConfig3D>): void {
 export function useEvolution3D() {
   const [state, setState] = useState<EvolutionState3D>(() => {
     const saved = loadState();
-    if (saved) return saved;
+    if (saved) {
+      // Truncate population if it exceeds current size limit
+      if (saved.population.length > POPULATION_SIZE) {
+        saved.population = saved.population.slice(0, POPULATION_SIZE);
+        saveState(saved);
+      }
+      return saved;
+    }
 
     const seed = generateRandomSeed();
     return {
