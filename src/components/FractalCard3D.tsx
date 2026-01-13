@@ -9,10 +9,11 @@ interface FractalCard3DProps {
   index: number;
   onSelect: (id: string) => void;
   onReject: (id: string) => void;
+  onViewDetail: () => void;
   size?: number;
 }
 
-export function FractalCard3D({ genome, index, onSelect, onReject, size = 180 }: FractalCard3DProps) {
+export function FractalCard3D({ genome, index, onSelect, onReject, onViewDetail, size = 180 }: FractalCard3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState(false);
   const sceneRef = useRef<{
@@ -137,9 +138,27 @@ export function FractalCard3D({ genome, index, onSelect, onReject, size = 180 }:
         X
       </button>
 
+      {/* Expand button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onViewDetail();
+        }}
+        className="absolute bottom-2 left-2 z-10 w-6 h-6 rounded bg-black/60 text-zinc-400 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-blue-600 hover:text-white transition-all"
+        title="View larger"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+        </svg>
+      </button>
+
       {/* Main clickable area */}
       <div
         onClick={() => onSelect(genome.id)}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          onViewDetail();
+        }}
         className={`
           cursor-pointer rounded-lg overflow-hidden border-4 transition-all
           ${isSelected ? 'border-green-500 shadow-lg shadow-green-500/40 scale-105' : ''}

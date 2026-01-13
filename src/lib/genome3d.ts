@@ -955,8 +955,8 @@ export function createInitialPopulation3D(size: number, seed?: number): FractalG
   // Shuffle using seeded random for reproducibility
   const shuffled = [...SEED_GENERATORS].sort(() => seededRandom() - 0.5);
 
-  // Add seed fractals (up to half the population)
-  const seedCount = Math.min(Math.floor(size / 2), shuffled.length);
+  // Add seed fractals (up to 3/4 of the population for variety)
+  const seedCount = Math.min(Math.floor(size * 0.75), shuffled.length);
   for (let i = 0; i < seedCount; i++) {
     population.push(shuffled[i]());
   }

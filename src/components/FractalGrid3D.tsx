@@ -5,9 +5,10 @@ interface FractalGrid3DProps {
   population: FractalGenome3D[];
   onSelect: (id: string) => void;
   onReject: (id: string) => void;
+  onViewDetail: (genome: FractalGenome3D) => void;
 }
 
-export function FractalGrid3D({ population, onSelect, onReject }: FractalGrid3DProps) {
+export function FractalGrid3D({ population, onSelect, onReject, onViewDetail }: FractalGrid3DProps) {
   return (
     <div className="grid grid-cols-4 gap-4 p-4">
       {population.map((genome, index) => (
@@ -17,6 +18,7 @@ export function FractalGrid3D({ population, onSelect, onReject }: FractalGrid3DP
           index={index}
           onSelect={onSelect}
           onReject={onReject}
+          onViewDetail={() => onViewDetail(genome)}
         />
       ))}
     </div>

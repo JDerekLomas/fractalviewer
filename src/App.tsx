@@ -1,10 +1,14 @@
+import { useState } from 'react';
 import { FractalGrid3D } from './components/FractalGrid3D';
 import { ControlPanel } from './components/ControlPanel';
 import { FeedbackPanel3D } from './components/FeedbackPanel3D';
 import { ConfigPanel } from './components/ConfigPanel';
+import { FractalDetailModal } from './components/FractalDetailModal';
 import { useEvolution3D } from './hooks/useEvolution3D';
+import { FractalGenome3D } from './lib/types3d';
 
 function App() {
+  const [detailGenome, setDetailGenome] = useState<FractalGenome3D | null>(null);
   const {
     population,
     generation,
@@ -40,6 +44,7 @@ function App() {
           population={population}
           onSelect={select}
           onReject={reject}
+          onViewDetail={(genome) => setDetailGenome(genome)}
         />
       </div>
 
@@ -51,7 +56,7 @@ function App() {
       />
 
       <div className="p-2 text-center text-zinc-600 text-xs">
-        Click to select favorites. X to reject. Drag to rotate. Click gear icon for evolution settings.
+        Click to select. Double-click or magnifier to enlarge. X to reject. Drag to rotate.
       </div>
 
       {showConfig && (
@@ -60,6 +65,13 @@ function App() {
           onConfigChange={setConfig}
           onApplyPreset={applyPreset}
           onClose={() => setShowConfig(false)}
+        />
+      )}
+
+      {detailGenome && (
+        <FractalDetailModal
+          genome={detailGenome}
+          onClose={() => setDetailGenome(null)}
         />
       )}
     </div>
