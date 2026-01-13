@@ -1,9 +1,7 @@
 import { AffineTransform3D, FractalGenome3D } from './types3d';
 
-let idCounter = 0;
-
 function generateId(): string {
-  return `fractal3d-${Date.now()}-${idCounter++}`;
+  return `fractal3d-${crypto.randomUUID()}`;
 }
 
 // Seeded random number generator (mulberry32)
