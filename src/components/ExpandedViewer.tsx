@@ -32,6 +32,7 @@ const MAX_POINTS = 500000;
 export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pointCount, setPointCount] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -59,101 +60,99 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.5;
 
-    // Progressive point generation - start small, grow visibly
-    const BATCH_SIZE = 2000;
-    const SKIP_ITERATIONS = 20;
+    // Point cloud setup
+    const geometry = new THREE.BufferGeometry();
+    const material = new THREE.PointsMaterial({
+      size: 0.015,
+      vertexColors: true,
+      sizeAttenuation: true,
+    });
+    const pointCloud = new THREE.Points(geometry, material);
+    scene.add(pointCloud);
 
-    let positions: number[] = [];
-    let colors: number[] = [];
-    let currentX = Math.random() * 2 - 1;
-    let currentY = Math.random() * 2 - 1;
-    let currentZ = Math.random() * 2 - 1;
+    // IFS state
+    let x = Math.random() * 2 - 1;
+    let y = Math.random() * 2 - 1;
+    let z = Math.random() * 2 - 1;
     let iteration = 0;
+    const SKIP = 20;
 
-    // Tracking bounds for normalization
+    // All accumulated points
+    const allPositions: number[] = [];
+    const allColors: number[] = [];
+
+    // Bounds tracking
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
     let minZ = Infinity, maxZ = -Infinity;
 
-    const geometry = new THREE.BufferGeometry();
-    const material = new THREE.PointsMaterial({
-      size: 0.006,
-      vertexColors: true,
-      sizeAttenuation: true,
-    });
-    const points = new THREE.Points(geometry, material);
-    scene.add(points);
-
-    let animationId: number;
-    let growthInterval: ReturnType<typeof setInterval>;
-
-    const addPoints = () => {
-      if (positions.length / 3 >= MAX_POINTS) return;
-
-      const newPositions: number[] = [];
-      const newColors: number[] = [];
-
-      for (let i = 0; i < BATCH_SIZE; i++) {
+    const addBatch = (count: number) => {
+      for (let i = 0; i < count; i++) {
         const tIdx = selectTransform(genome.transforms);
         const t = genome.transforms[tIdx];
-        [currentX, currentY, currentZ] = applyTransform3D(currentX, currentY, currentZ, t);
+        [x, y, z] = applyTransform3D(x, y, z, t);
 
-        if (!isFinite(currentX) || !isFinite(currentY) || !isFinite(currentZ)) {
-          currentX = Math.random() * 2 - 1;
-          currentY = Math.random() * 2 - 1;
-          currentZ = Math.random() * 2 - 1;
+        if (!isFinite(x) || !isFinite(y) || !isFinite(z)) {
+          x = Math.random() * 2 - 1;
+          y = Math.random() * 2 - 1;
+          z = Math.random() * 2 - 1;
           continue;
         }
 
         iteration++;
-        if (iteration <= SKIP_ITERATIONS) continue;
+        if (iteration <= SKIP) continue;
 
-        minX = Math.min(minX, currentX);
-        maxX = Math.max(maxX, currentX);
-        minY = Math.min(minY, currentY);
-        maxY = Math.max(maxY, currentY);
-        minZ = Math.min(minZ, currentZ);
-        maxZ = Math.max(maxZ, currentZ);
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
 
-        newPositions.push(currentX, currentY, currentZ);
-        newColors.push(t.color[0] / 255, t.color[1] / 255, t.color[2] / 255);
+        allPositions.push(x, y, z);
+        allColors.push(t.color[0] / 255, t.color[1] / 255, t.color[2] / 255);
       }
 
-      positions.push(...newPositions);
-      colors.push(...newColors);
+      // Update geometry
+      const numPoints = allPositions.length / 3;
+      if (numPoints > 0) {
+        const rangeX = maxX - minX || 1;
+        const rangeY = maxY - minY || 1;
+        const rangeZ = maxZ - minZ || 1;
+        const maxRange = Math.max(rangeX, rangeY, rangeZ);
+        const scale = 2 / maxRange;
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        const cz = (minZ + maxZ) / 2;
 
-      // Normalize all points
-      const rangeX = maxX - minX || 1;
-      const rangeY = maxY - minY || 1;
-      const rangeZ = maxZ - minZ || 1;
-      const maxRange = Math.max(rangeX, rangeY, rangeZ);
-      const scale = 2 / maxRange;
-      const centerX = (minX + maxX) / 2;
-      const centerY = (minY + maxY) / 2;
-      const centerZ = (minZ + maxZ) / 2;
+        const positions = new Float32Array(allPositions.length);
+        for (let i = 0; i < allPositions.length; i += 3) {
+          positions[i] = (allPositions[i] - cx) * scale;
+          positions[i + 1] = (allPositions[i + 1] - cy) * scale;
+          positions[i + 2] = (allPositions[i + 2] - cz) * scale;
+        }
 
-      const normalizedPositions = new Float32Array(positions.length);
-      for (let i = 0; i < positions.length; i += 3) {
-        normalizedPositions[i] = (positions[i] - centerX) * scale;
-        normalizedPositions[i + 1] = (positions[i + 1] - centerY) * scale;
-        normalizedPositions[i + 2] = (positions[i + 2] - centerZ) * scale;
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(allColors), 3));
+        geometry.computeBoundingSphere();
       }
 
-      geometry.setAttribute('position', new THREE.BufferAttribute(normalizedPositions, 3));
-      geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.color.needsUpdate = true;
-
-      setPointCount(positions.length / 3);
+      setPointCount(numPoints);
+      return numPoints;
     };
 
-    // Start with just one small batch so growth is visible
-    addPoints();
+    // Start with just 10 points
+    addBatch(30); // 30 iterations = 10 points after skipping first 20
 
-    // Continue growing every 50ms
-    growthInterval = setInterval(addPoints, 50);
+    // Grow by 500 points every 50ms
+    intervalRef.current = setInterval(() => {
+      const currentCount = allPositions.length / 3;
+      if (currentCount >= MAX_POINTS) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        return;
+      }
+      addBatch(500);
+    }, 50);
 
     // Animation loop
+    let animationId: number;
     const animate = () => {
       animationId = requestAnimationFrame(animate);
       controls.update();
@@ -173,11 +172,13 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
 
     // Cleanup
     return () => {
-      clearInterval(growthInterval);
+      if (intervalRef.current) clearInterval(intervalRef.current);
       cancelAnimationFrame(animationId);
       window.removeEventListener('resize', handleResize);
       controls.dispose();
       renderer.dispose();
+      geometry.dispose();
+      material.dispose();
       container.innerHTML = '';
     };
   }, [genome]);
