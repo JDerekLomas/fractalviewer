@@ -1,4 +1,4 @@
-# Fractal Evolver 3D
+# Fractal Breeder
 
 An evolutionary 3D fractal art tool using Iterated Function Systems (IFS) with human-in-the-loop selection. Breed beautiful fractals by selecting your favorites and watching them evolve.
 

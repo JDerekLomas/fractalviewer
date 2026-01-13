@@ -41,7 +41,7 @@ export function ControlPanel({
   return (
     <div className="flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800">
       <div className="flex items-center gap-6">
-        <h1 className="text-xl font-bold text-white">Fractal Evolver 3D</h1>
+        <h1 className="text-xl font-bold text-white">Fractal Breeder</h1>
         <div className="text-zinc-400 text-sm">
           Generation <span className="text-white font-mono text-lg">{generation}</span>
         </div>
