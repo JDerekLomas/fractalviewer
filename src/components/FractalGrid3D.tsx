@@ -1,0 +1,26 @@
+import { FractalGenome3D } from '../lib/types3d';
+import { FractalCard3D } from './FractalCard3D';
+
+interface FractalGrid3DProps {
+  population: FractalGenome3D[];
+  onSelect: (id: string) => void;
+  onReject: (id: string) => void;
+  onExpand: (genome: FractalGenome3D) => void;
+}
+
+export function FractalGrid3D({ population, onSelect, onReject, onExpand }: FractalGrid3DProps) {
+  return (
+    <div className="grid grid-cols-4 gap-4 p-4">
+      {population.map((genome, index) => (
+        <FractalCard3D
+          key={genome.id}
+          genome={genome}
+          index={index}
+          onSelect={onSelect}
+          onReject={onReject}
+          onExpand={() => onExpand(genome)}
+        />
+      ))}
+    </div>
+  );
+}
