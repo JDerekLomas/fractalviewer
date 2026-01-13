@@ -27,7 +27,7 @@ function applyTransform3D(x: number, y: number, z: number, t: AffineTransform3D)
   ];
 }
 
-const MAX_POINTS = 500000;
+const MAX_POINTS = 50000;
 
 export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,15 +60,33 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.5;
 
-    // Point cloud setup
-    const geometry = new THREE.BufferGeometry();
-    const material = new THREE.PointsMaterial({
-      size: 0.015,
-      vertexColors: true,
-      sizeAttenuation: true,
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(5, 5, 5);
+    scene.add(directionalLight);
+
+    const directionalLight2 = new THREE.DirectionalLight(0x8888ff, 0.5);
+    directionalLight2.position.set(-5, -3, -5);
+    scene.add(directionalLight2);
+
+    // Instanced spheres setup
+    const sphereGeometry = new THREE.SphereGeometry(0.012, 8, 6);
+    const sphereMaterial = new THREE.MeshStandardMaterial({
+      roughness: 0.4,
+      metalness: 0.3,
     });
-    const pointCloud = new THREE.Points(geometry, material);
-    scene.add(pointCloud);
+
+    // Pre-allocate instanced mesh for max points (we'll update count as we grow)
+    const maxInstances = MAX_POINTS;
+    const instancedMesh = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, maxInstances);
+    instancedMesh.count = 0; // Start with 0 visible instances
+    scene.add(instancedMesh);
+
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
 
     // IFS state
     let x = Math.random() * 2 - 1;
@@ -110,7 +128,7 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
         allColors.push(t.color[0] / 255, t.color[1] / 255, t.color[2] / 255);
       }
 
-      // Update geometry
+      // Update instanced mesh
       const numPoints = allPositions.length / 3;
       if (numPoints > 0) {
         const rangeX = maxX - minX || 1;
@@ -122,16 +140,23 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
         const cy = (minY + maxY) / 2;
         const cz = (minZ + maxZ) / 2;
 
-        const positions = new Float32Array(allPositions.length);
-        for (let i = 0; i < allPositions.length; i += 3) {
-          positions[i] = (allPositions[i] - cx) * scale;
-          positions[i + 1] = (allPositions[i + 1] - cy) * scale;
-          positions[i + 2] = (allPositions[i + 2] - cz) * scale;
+        // Update all instance transforms and colors
+        for (let i = 0; i < numPoints; i++) {
+          const px = (allPositions[i * 3] - cx) * scale;
+          const py = (allPositions[i * 3 + 1] - cy) * scale;
+          const pz = (allPositions[i * 3 + 2] - cz) * scale;
+
+          dummy.position.set(px, py, pz);
+          dummy.updateMatrix();
+          instancedMesh.setMatrixAt(i, dummy.matrix);
+
+          color.setRGB(allColors[i * 3], allColors[i * 3 + 1], allColors[i * 3 + 2]);
+          instancedMesh.setColorAt(i, color);
         }
 
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(allColors), 3));
-        geometry.computeBoundingSphere();
+        instancedMesh.count = numPoints;
+        instancedMesh.instanceMatrix.needsUpdate = true;
+        if (instancedMesh.instanceColor) instancedMesh.instanceColor.needsUpdate = true;
       }
 
       setPointCount(numPoints);
@@ -177,8 +202,8 @@ export function ExpandedViewer({ genome, onClose }: ExpandedViewerProps) {
       window.removeEventListener('resize', handleResize);
       controls.dispose();
       renderer.dispose();
-      geometry.dispose();
-      material.dispose();
+      sphereGeometry.dispose();
+      sphereMaterial.dispose();
       container.innerHTML = '';
     };
   }, [genome]);
