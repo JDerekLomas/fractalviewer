@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { FractalGenome3D } from '../lib/types3d';
-import { createInitialPopulation3D } from '../lib/genome3d';
+import { createInitialPopulation3D, generateRandomSeed } from '../lib/genome3d';
 import {
   evolveGeneration3D,
   EvolutionConfig3D,
@@ -18,6 +18,7 @@ interface EvolutionState3D {
   population: FractalGenome3D[];
   generation: number;
   comment: string;
+  seed: number;
 }
 
 function loadState(): EvolutionState3D | null {
@@ -28,6 +29,7 @@ function loadState(): EvolutionState3D | null {
       return {
         ...parsed,
         comment: parsed.comment ?? '',
+        seed: parsed.seed ?? generateRandomSeed(),
       };
     }
   } catch (e) {
@@ -69,10 +71,12 @@ export function useEvolution3D() {
     const saved = loadState();
     if (saved) return saved;
 
+    const seed = generateRandomSeed();
     return {
-      population: createInitialPopulation3D(POPULATION_SIZE),
+      population: createInitialPopulation3D(POPULATION_SIZE, seed),
       generation: 0,
       comment: '',
+      seed,
     };
   });
 
@@ -134,17 +138,20 @@ export function useEvolution3D() {
         population: newPopulation,
         generation: prev.generation + 1,
         comment: '',
+        seed: prev.seed,
       };
       saveState(newState);
       return newState;
     });
   }, [config]);
 
-  const reset = useCallback(() => {
+  const reset = useCallback((newSeed?: number) => {
+    const seed = newSeed ?? generateRandomSeed();
     const newState = {
-      population: createInitialPopulation3D(POPULATION_SIZE),
+      population: createInitialPopulation3D(POPULATION_SIZE, seed),
       generation: 0,
       comment: '',
+      seed,
     };
     saveState(newState);
     setState(newState);
@@ -175,6 +182,7 @@ export function useEvolution3D() {
     population: state.population,
     generation: state.generation,
     comment: state.comment,
+    seed: state.seed,
     config,
     showConfig,
     select,

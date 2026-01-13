@@ -9,6 +9,7 @@ function App() {
     population,
     generation,
     comment,
+    seed,
     config,
     showConfig,
     select,
@@ -26,6 +27,7 @@ function App() {
       <ControlPanel
         population={population}
         generation={generation}
+        seed={seed}
         onEvolve={evolve}
         onReset={reset}
         onOpenSettings={() => setShowConfig(true)}

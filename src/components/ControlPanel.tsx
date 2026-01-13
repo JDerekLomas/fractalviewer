@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 interface GenomeWithRating {
   rating?: 'up' | 'down';
 }
@@ -5,8 +7,9 @@ interface GenomeWithRating {
 interface ControlPanelProps {
   population: GenomeWithRating[];
   generation: number;
+  seed: number;
   onEvolve: () => void;
-  onReset: () => void;
+  onReset: (seed?: number) => void;
   onOpenSettings?: () => void;
   crossoverType?: string;
   mutationType?: string;
@@ -15,6 +18,7 @@ interface ControlPanelProps {
 export function ControlPanel({
   population,
   generation,
+  seed,
   onEvolve,
   onReset,
   onOpenSettings,
@@ -22,6 +26,17 @@ export function ControlPanel({
   mutationType,
 }: ControlPanelProps) {
   const selectedCount = population.filter(g => g.rating === 'up').length;
+  const [seedInput, setSeedInput] = useState('');
+  const [showSeedInput, setShowSeedInput] = useState(false);
+
+  const handleSeedSubmit = () => {
+    const parsed = parseInt(seedInput, 10);
+    if (!isNaN(parsed)) {
+      onReset(parsed);
+    }
+    setSeedInput('');
+    setShowSeedInput(false);
+  };
 
   return (
     <div className="flex items-center justify-between p-4 bg-zinc-900 border-b border-zinc-800">
@@ -30,6 +45,15 @@ export function ControlPanel({
         <div className="text-zinc-400 text-sm">
           Generation <span className="text-white font-mono text-lg">{generation}</span>
         </div>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(seed.toString());
+          }}
+          className="text-zinc-500 text-xs font-mono hover:text-zinc-300 transition-colors"
+          title="Click to copy seed"
+        >
+          Seed: {seed}
+        </button>
         {crossoverType && mutationType && (
           <div className="hidden md:flex items-center gap-2 text-xs">
             <span className="px-2 py-1 bg-blue-900/50 text-blue-300 rounded">
@@ -73,8 +97,44 @@ export function ControlPanel({
           </button>
         )}
 
+        {showSeedInput ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={seedInput}
+              onChange={(e) => setSeedInput(e.target.value)}
+              placeholder="Enter seed..."
+              className="w-32 px-2 py-1 text-sm bg-zinc-800 border border-zinc-600 rounded text-white font-mono"
+              onKeyDown={(e) => e.key === 'Enter' && handleSeedSubmit()}
+              autoFocus
+            />
+            <button
+              onClick={handleSeedSubmit}
+              className="px-2 py-1 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded"
+            >
+              Go
+            </button>
+            <button
+              onClick={() => setShowSeedInput(false)}
+              className="px-2 py-1 text-sm bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded"
+            >
+              X
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowSeedInput(true)}
+            className="px-3 py-2 rounded-lg font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
+            title="Enter a specific seed"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+            </svg>
+          </button>
+        )}
+
         <button
-          onClick={onReset}
+          onClick={() => onReset()}
           className="px-4 py-2 rounded-lg font-medium bg-zinc-700 hover:bg-zinc-600 text-zinc-300"
         >
           Reset

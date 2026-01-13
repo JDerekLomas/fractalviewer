@@ -6,12 +6,34 @@ function generateId(): string {
   return `fractal3d-${Date.now()}-${idCounter++}`;
 }
 
+// Seeded random number generator (mulberry32)
+let currentSeed = Date.now();
+
+function seededRandom(): number {
+  let t = currentSeed += 0x6D2B79F5;
+  t = Math.imul(t ^ t >>> 15, t | 1);
+  t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+
+export function setRandomSeed(seed: number): void {
+  currentSeed = seed;
+}
+
+export function getRandomSeed(): number {
+  return currentSeed;
+}
+
+export function generateRandomSeed(): number {
+  return Math.floor(Math.random() * 2147483647);
+}
+
 function randomRange(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
+  return seededRandom() * (max - min) + min;
 }
 
 function randomColor(): [number, number, number] {
-  const h = Math.random() * 360;
+  const h = seededRandom() * 360;
   const s = randomRange(0.6, 1);
   const l = randomRange(0.4, 0.7);
 
@@ -919,12 +941,19 @@ const SEED_GENERATORS = [
   createFernFrond,
 ];
 
-export function createInitialPopulation3D(size: number): FractalGenome3D[] {
+export function createInitialPopulation3D(size: number, seed?: number): FractalGenome3D[] {
+  // Set seed if provided, otherwise generate a new one
+  if (seed !== undefined) {
+    setRandomSeed(seed);
+  } else {
+    setRandomSeed(generateRandomSeed());
+  }
+
   const population: FractalGenome3D[] = [];
 
   // Include a diverse mix of seed fractals
-  // Shuffle and pick from available seeds
-  const shuffled = [...SEED_GENERATORS].sort(() => Math.random() - 0.5);
+  // Shuffle using seeded random for reproducibility
+  const shuffled = [...SEED_GENERATORS].sort(() => seededRandom() - 0.5);
 
   // Add seed fractals (up to half the population)
   const seedCount = Math.min(Math.floor(size / 2), shuffled.length);
