@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FractalGenome3D } from '../lib/types3d';
@@ -113,6 +113,24 @@ export function FractalCard3D({ genome, index, onSelect, onReject, onViewDetail,
   const isSelected = genome.rating === 'up';
   const isRejected = genome.rating === 'down';
 
+  // Handle single vs double click
+  const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleClick = useCallback(() => {
+    if (clickTimeout.current) {
+      // Double click detected - clear timeout and open detail
+      clearTimeout(clickTimeout.current);
+      clickTimeout.current = null;
+      onViewDetail();
+    } else {
+      // Single click - wait to see if it's a double click
+      clickTimeout.current = setTimeout(() => {
+        clickTimeout.current = null;
+        onSelect(genome.id);
+      }, 250);
+    }
+  }, [genome.id, onSelect, onViewDetail]);
+
   return (
     <div className="relative group">
       {/* Index number */}
@@ -154,11 +172,7 @@ export function FractalCard3D({ genome, index, onSelect, onReject, onViewDetail,
 
       {/* Main clickable area */}
       <div
-        onClick={() => onSelect(genome.id)}
-        onDoubleClick={(e) => {
-          e.stopPropagation();
-          onViewDetail();
-        }}
+        onClick={handleClick}
         className={`
           cursor-pointer rounded-lg overflow-hidden border-4 transition-all
           ${isSelected ? 'border-green-500 shadow-lg shadow-green-500/40 scale-105' : ''}
