@@ -1,10 +1,18 @@
 import { useState, useCallback } from 'react';
 import { FractalGenome3D } from '../lib/types3d';
 import { createInitialPopulation3D } from '../lib/genome3d';
-import { evolveGeneration3D } from '../lib/evolution3d';
+import {
+  evolveGeneration3D,
+  EvolutionConfig3D,
+  defaultConfig,
+  evolutionPresets,
+  getGenerationStats,
+  GenerationStats,
+} from '../lib/evolution3d';
 
 const POPULATION_SIZE = 16;
 const STORAGE_KEY = 'fractal-evolver-3d-state';
+const CONFIG_STORAGE_KEY = 'fractal-evolver-3d-config';
 
 interface EvolutionState3D {
   population: FractalGenome3D[];
@@ -36,6 +44,26 @@ function saveState(state: EvolutionState3D): void {
   }
 }
 
+function loadConfig(): Partial<EvolutionConfig3D> {
+  try {
+    const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error('Failed to load config:', e);
+  }
+  return {};
+}
+
+function saveConfig(config: Partial<EvolutionConfig3D>): void {
+  try {
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
+  } catch (e) {
+    console.error('Failed to save config:', e);
+  }
+}
+
 export function useEvolution3D() {
   const [state, setState] = useState<EvolutionState3D>(() => {
     const saved = loadState();
@@ -47,6 +75,13 @@ export function useEvolution3D() {
       comment: '',
     };
   });
+
+  const [config, setConfigState] = useState<EvolutionConfig3D>(() => ({
+    ...defaultConfig,
+    ...loadConfig(),
+  }));
+
+  const [showConfig, setShowConfig] = useState(false);
 
   const select = useCallback((id: string) => {
     setState(prev => {
@@ -91,6 +126,7 @@ export function useEvolution3D() {
   const evolve = useCallback(() => {
     setState(prev => {
       const newPopulation = evolveGeneration3D(prev.population, {
+        ...config,
         populationSize: POPULATION_SIZE,
       });
 
@@ -102,7 +138,7 @@ export function useEvolution3D() {
       saveState(newState);
       return newState;
     });
-  }, []);
+  }, [config]);
 
   const reset = useCallback(() => {
     const newState = {
@@ -114,14 +150,41 @@ export function useEvolution3D() {
     setState(newState);
   }, []);
 
+  const setConfig = useCallback((newConfig: Partial<EvolutionConfig3D>) => {
+    setConfigState(prev => {
+      const updated = { ...prev, ...newConfig };
+      saveConfig(newConfig);
+      return updated;
+    });
+  }, []);
+
+  const applyPreset = useCallback((presetName: string) => {
+    const preset = evolutionPresets[presetName];
+    if (preset) {
+      const updated = { ...defaultConfig, ...preset };
+      saveConfig(preset);
+      setConfigState(updated);
+    }
+  }, []);
+
+  const getStats = useCallback((): GenerationStats => {
+    return getGenerationStats(state.population);
+  }, [state.population]);
+
   return {
     population: state.population,
     generation: state.generation,
     comment: state.comment,
+    config,
+    showConfig,
     select,
     reject,
     setComment,
     evolve,
     reset,
+    setConfig,
+    applyPreset,
+    setShowConfig,
+    getStats,
   };
 }

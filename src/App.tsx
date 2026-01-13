@@ -1,10 +1,25 @@
 import { FractalGrid3D } from './components/FractalGrid3D';
 import { ControlPanel } from './components/ControlPanel';
 import { FeedbackPanel3D } from './components/FeedbackPanel3D';
+import { ConfigPanel } from './components/ConfigPanel';
 import { useEvolution3D } from './hooks/useEvolution3D';
 
 function App() {
-  const { population, generation, comment, select, reject, setComment, evolve, reset } = useEvolution3D();
+  const {
+    population,
+    generation,
+    comment,
+    config,
+    showConfig,
+    select,
+    reject,
+    setComment,
+    evolve,
+    reset,
+    setConfig,
+    applyPreset,
+    setShowConfig,
+  } = useEvolution3D();
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
@@ -13,6 +28,9 @@ function App() {
         generation={generation}
         onEvolve={evolve}
         onReset={reset}
+        onOpenSettings={() => setShowConfig(true)}
+        crossoverType={config.crossoverType}
+        mutationType={config.mutationType}
       />
 
       <div className="flex-1 overflow-auto">
@@ -31,8 +49,17 @@ function App() {
       />
 
       <div className="p-2 text-center text-zinc-600 text-xs">
-        Click to select favorites. X to reject. Drag to rotate. Comments and selections export below.
+        Click to select favorites. X to reject. Drag to rotate. Click gear icon for evolution settings.
       </div>
+
+      {showConfig && (
+        <ConfigPanel
+          config={config}
+          onConfigChange={setConfig}
+          onApplyPreset={applyPreset}
+          onClose={() => setShowConfig(false)}
+        />
+      )}
     </div>
   );
 }
