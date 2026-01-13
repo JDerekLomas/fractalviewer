@@ -46,6 +46,6 @@ npm run dev
 
 ## Credits
 
-**Concept:** [Aadjan van der Helm](https://www.tudelft.nl/io/over-io/personen/helm-aadjan-van-der) (TU Delft) - Originally developed this evolutionary fractal breeding approach for his masters project in 1999. This implementation was inspired by his presentation at TU Delft Faculty of Industrial Design Engineering townhall in January 2025.
+**Concept:** [Aadjan van der Helm](https://www.tudelft.nl/io/over-io/personen/helm-aaj-van-der) (TU Delft) - Originally developed for his master's thesis in 1999. This implementation was inspired by a conversation at a TU Delft faculty townhall meeting on AI and education in January 2025.
 
-**Built with:** Claude Code (Anthropic)
+**Implementation:** Built with [Claude Code](https://claude.ai/claude-code) (Anthropic)
