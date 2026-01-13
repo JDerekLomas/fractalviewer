@@ -10,7 +10,7 @@ import {
   GenerationStats,
 } from '../lib/evolution3d';
 
-const POPULATION_SIZE = 16;
+const POPULATION_SIZE = 9;
 const STORAGE_KEY = 'fractal-evolver-3d-state';
 const CONFIG_STORAGE_KEY = 'fractal-evolver-3d-config';
 
