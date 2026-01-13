@@ -27,7 +27,7 @@ export function FractalDetailModal({ genome, onClose }: FractalDetailModalProps)
     scene.background = new THREE.Color(0x0a0a0a);
 
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    camera.position.set(3, 3, 3);
+    camera.position.set(1.5, 1.5, 1.5);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(600, 600);
