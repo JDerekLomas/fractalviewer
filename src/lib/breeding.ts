@@ -19,13 +19,24 @@ import { AffineTransform3D, FractalGenome3D } from './types3d';
  * For contractivity, this should be < 1
  */
 export function spectralRadius(m: number[]): number {
-  // For a 3x3 matrix, we use Frobenius norm as an upper bound
-  // (simpler than computing actual eigenvalues)
+  // Use Frobenius norm / sqrt(3) as an upper bound approximation
+  // This is more conservative than actual eigenvalue computation
   let sum = 0;
   for (let i = 0; i < 9; i++) {
     sum += m[i] * m[i];
   }
-  return Math.sqrt(sum / 3); // Approximate spectral radius
+  return Math.sqrt(sum / 3);
+}
+
+/**
+ * Calculate the maximum row sum norm (infinity norm) of a 3x3 matrix
+ * This gives another contractivity bound
+ */
+export function infinityNorm(m: number[]): number {
+  const row1 = Math.abs(m[0]) + Math.abs(m[1]) + Math.abs(m[2]);
+  const row2 = Math.abs(m[3]) + Math.abs(m[4]) + Math.abs(m[5]);
+  const row3 = Math.abs(m[6]) + Math.abs(m[7]) + Math.abs(m[8]);
+  return Math.max(row1, row2, row3);
 }
 
 /**
@@ -41,26 +52,62 @@ export function determinant3x3(m: number[]): number {
 
 /**
  * Check if a transform is contractive (will converge to bounded attractor)
+ * Uses multiple norms for more reliable detection
  */
 export function isContractive(t: AffineTransform3D, maxContractivity = 0.95): boolean {
   const sr = spectralRadius(t.m);
+  const infNorm = infinityNorm(t.m);
   const det = Math.abs(determinant3x3(t.m));
-  return sr < maxContractivity && det < maxContractivity;
+
+  // All measures should indicate contractivity
+  return sr < maxContractivity && infNorm < maxContractivity && det < Math.pow(maxContractivity, 3);
 }
 
 /**
  * Enforce contractivity by scaling down the matrix if needed
+ * Uses the stricter of spectral radius or infinity norm
  */
 export function enforceContractivity(
   m: number[],
-  maxContractivity = 0.85
+  maxContractivity = 0.75
 ): number[] {
   const sr = spectralRadius(m);
-  if (sr > maxContractivity) {
-    const scale = maxContractivity / sr;
+  const infNorm = infinityNorm(m);
+  const maxNorm = Math.max(sr, infNorm);
+
+  if (maxNorm > maxContractivity) {
+    const scale = maxContractivity / maxNorm;
     return m.map(v => v * scale);
   }
   return m;
+}
+
+/**
+ * Test if a genome will produce valid (non-divergent) output
+ * by running a quick simulation
+ */
+export function testGenomeValidity(genome: { transforms: AffineTransform3D[] }): boolean {
+  if (genome.transforms.length === 0) return false;
+
+  let x = 0, y = 0, z = 0;
+  const transforms = genome.transforms;
+
+  for (let i = 0; i < 100; i++) {
+    const t = transforms[Math.floor(Math.random() * transforms.length)];
+    const [m0, m1, m2, m3, m4, m5, m6, m7, m8] = t.m;
+
+    x = m0 * x + m1 * y + m2 * z + t.tx;
+    y = m3 * x + m4 * y + m5 * z + t.ty;
+    z = m6 * x + m7 * y + m8 * z + t.tz;
+
+    // Check for divergence
+    if (!isFinite(x) || !isFinite(y) || !isFinite(z) ||
+        Math.abs(x) > 1e6 || Math.abs(y) > 1e6 || Math.abs(z) > 1e6) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // ============================================

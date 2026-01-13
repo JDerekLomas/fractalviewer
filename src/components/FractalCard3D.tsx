@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { FractalGenome3D } from '../lib/types3d';
@@ -14,6 +14,7 @@ interface FractalCard3DProps {
 
 export function FractalCard3D({ genome, index, onSelect, onReject, size = 180 }: FractalCard3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [renderError, setRenderError] = useState(false);
   const sceneRef = useRef<{
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
@@ -25,53 +26,87 @@ export function FractalCard3D({ genome, index, onSelect, onReject, size = 180 }:
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Setup scene
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a0a);
+    setRenderError(false);
 
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-    camera.position.set(2, 2, 2);
+    try {
+      // Setup scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0a);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(size, size);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    containerRef.current.appendChild(renderer.domElement);
+      const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+      camera.position.set(2, 2, 2);
 
-    // Orbit controls for rotation
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enableZoom = false;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 1;
-
-    // Add fractal
-    const pointCloud = createFractalPointCloud(genome, {
-      iterations: 30000,
-      pointSize: 3,
-    });
-    scene.add(pointCloud);
-
-    // Animation loop
-    const animate = () => {
-      sceneRef.current!.animationId = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-
-    sceneRef.current = { scene, camera, renderer, controls, animationId: 0 };
-    animate();
-
-    return () => {
-      if (sceneRef.current) {
-        cancelAnimationFrame(sceneRef.current.animationId);
-        sceneRef.current.controls.dispose();
-        sceneRef.current.renderer.dispose();
+      // Try to create WebGL renderer with fallback
+      let renderer: THREE.WebGLRenderer;
+      try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, failIfMajorPerformanceCaveat: false });
+      } catch {
+        setRenderError(true);
+        return;
       }
-      if (containerRef.current) {
-        containerRef.current.innerHTML = '';
+
+      // Check if WebGL context is valid
+      if (!renderer.getContext()) {
+        setRenderError(true);
+        renderer.dispose();
+        return;
       }
-    };
+
+      renderer.setSize(size, size);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      containerRef.current.appendChild(renderer.domElement);
+
+      // Orbit controls for rotation
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.enableZoom = false;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 1;
+
+      // Add fractal
+      const pointCloud = createFractalPointCloud(genome, {
+        iterations: 30000,
+        pointSize: 3,
+      });
+
+      const count = pointCloud.userData.pointCount || 0;
+
+      // If no points were generated, show error state
+      if (count === 0) {
+        setRenderError(true);
+        renderer.dispose();
+        controls.dispose();
+        return;
+      }
+
+      scene.add(pointCloud);
+
+      // Animation loop
+      const animate = () => {
+        if (!sceneRef.current) return;
+        sceneRef.current.animationId = requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      };
+
+      sceneRef.current = { scene, camera, renderer, controls, animationId: 0 };
+      animate();
+
+      return () => {
+        if (sceneRef.current) {
+          cancelAnimationFrame(sceneRef.current.animationId);
+          sceneRef.current.controls.dispose();
+          sceneRef.current.renderer.dispose();
+        }
+        if (containerRef.current) {
+          containerRef.current.innerHTML = '';
+        }
+      };
+    } catch (error) {
+      console.error('Failed to render fractal:', error);
+      setRenderError(true);
+    }
   }, [genome, size]);
 
   const isSelected = genome.rating === 'up';
@@ -112,11 +147,22 @@ export function FractalCard3D({ genome, index, onSelect, onReject, size = 180 }:
           ${!isSelected && !isRejected ? 'border-transparent hover:border-zinc-600' : ''}
         `}
       >
-        <div
-          ref={containerRef}
-          style={{ width: size, height: size }}
-          className="bg-zinc-900"
-        />
+        {renderError ? (
+          <div
+            style={{ width: size, height: size }}
+            className="bg-zinc-900 flex flex-col items-center justify-center text-zinc-500"
+          >
+            <div className="text-2xl mb-2">~</div>
+            <div className="text-xs">Divergent</div>
+            <div className="text-xs opacity-50">{genome.transforms.length} transforms</div>
+          </div>
+        ) : (
+          <div
+            ref={containerRef}
+            style={{ width: size, height: size }}
+            className="bg-zinc-900"
+          />
+        )}
       </div>
 
       {/* Selected checkmark */}

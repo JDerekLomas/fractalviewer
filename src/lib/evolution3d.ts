@@ -7,6 +7,7 @@ import {
   mutateTransform,
   calculateFitness,
   enforceContractivity,
+  testGenomeValidity,
 } from './breeding';
 import { AffineTransform3D } from './types3d';
 
@@ -286,8 +287,14 @@ export function evolveGeneration3D(
   }
 
   // Fill rest through breeding
-  while (newPopulation.length < cfg.populationSize) {
+  let attempts = 0;
+  const maxAttempts = cfg.populationSize * 10; // Prevent infinite loops
+
+  while (newPopulation.length < cfg.populationSize && attempts < maxAttempts) {
+    attempts++;
     const parent1 = selectParent(population, cfg);
+
+    let child: FractalGenome3D;
 
     if (Math.random() < cfg.crossoverRate) {
       // Crossover + mutation
@@ -298,11 +305,11 @@ export function evolveGeneration3D(
       if (cfg.enforceContractivity) {
         childTransforms = childTransforms.map(t => ({
           ...t,
-          m: enforceContractivity(t.m, 0.85) as AffineTransform3D['m'],
+          m: enforceContractivity(t.m, 0.75) as AffineTransform3D['m'],
         }));
       }
 
-      let child: FractalGenome3D = {
+      child = {
         id: generateId(),
         transforms: childTransforms,
         generation,
@@ -314,13 +321,26 @@ export function evolveGeneration3D(
         child = mutateGenome(child, cfg);
         child.generation = generation;
       }
-
-      newPopulation.push(child);
     } else {
       // Pure mutation (no crossover)
-      const child = mutateGenome(parent1, cfg);
+      child = mutateGenome(parent1, cfg);
       child.generation = generation;
-      newPopulation.push(child);
+    }
+
+    // Validate the child - if invalid, try again
+    if (cfg.enforceContractivity && !testGenomeValidity(child)) {
+      // Invalid genome, skip and try again
+      continue;
+    }
+
+    newPopulation.push(child);
+  }
+
+  // If we still don't have enough, fill with random valid genomes
+  while (newPopulation.length < cfg.populationSize) {
+    const randomGenome = createRandomGenome3D(generation);
+    if (!cfg.enforceContractivity || testGenomeValidity(randomGenome)) {
+      newPopulation.push(randomGenome);
     }
   }
 
